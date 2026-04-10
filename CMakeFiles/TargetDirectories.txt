@@ -1,0 +1,3 @@
+/home/marten420/projects/raycast/CMakeFiles/main.dir
+/home/marten420/projects/raycast/CMakeFiles/edit_cache.dir
+/home/marten420/projects/raycast/CMakeFiles/rebuild_cache.dir

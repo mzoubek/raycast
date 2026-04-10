@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/marten420/projects/raycast/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
