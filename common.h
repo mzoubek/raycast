@@ -6,6 +6,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <math.h>
+#include <stdio.h>
 
 // TODO: check later if this needs to be a pointer
 typedef struct {
@@ -18,9 +20,23 @@ typedef struct {
 } Player;
 
 typedef struct {
+  size_t pixelW;
+  size_t pixelH;
+  size_t mapW;
+  size_t mapH;
+  int *MAP;
+} Map;
+
+typedef struct {
+  Player *player;
+  Map map;
+} Level;
+
+typedef struct {
   SDL_Window *window;
   SDL_Renderer *renderer;
   bool keys[SDL_SCANCODE_COUNT];
   Player player;
   Uint64 lastTime;
+  Level level;
 } AppState;

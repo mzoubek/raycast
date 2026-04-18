@@ -1,10 +1,32 @@
+#include <SDL3/SDL_rect.h>
 #include <SDL3/SDL_render.h>
 #define SDL_MAIN_USE_CALLBACKS 1 /* use the callbacks instead of main() */
+#define M_PI 3.14159265359
 #include "common.h"
+
+/* ==============================================================
+ *
+ *  NOTES: conversion from angle to radians = angle * M_PI / 180
+ *   FIX: the conversion of flat 1D map to SDL is incorrect as boundaries exist
+ *  elsewhere
+ *
+ * ==============================================================
+ */
 
 /* We will use this renderer to draw into this window every frame. */
 static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
+static int MAP[] = {
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0,
+    0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
+    0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+};
+
+static void loadLevel(AppState *as, Level *level, SDL_FRect *rect);
+static void playerMovement(AppState *as, float speed, double *dt);
+static void playerRender2D(AppState *as, SDL_FRect *rect, Player *player);
+static bool notWall(float x, float y, size_t tileSize, size_t tileCount,
+                    int *map);
 
 /* This function runs once at startup. */
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
@@ -19,10 +41,15 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
   as->player.health = 100;
   as->player.armor = 0;
   as->player.ammo = 100;
-  as->player.angle = 0;
-  as->player.x = 320;
-  as->player.y = 240;
+  as->player.angle = 90;
+  as->player.x = 170;
+  as->player.y = 120;
   as->lastTime = SDL_GetPerformanceCounter();
+  as->level.map.pixelW = 64;
+  as->level.map.pixelH = 64;
+  as->level.map.mapW = 8;
+  as->level.map.mapH = 8;
+  as->level.map.MAP = MAP;
   if (!as) {
     return SDL_APP_FAILURE;
   }
@@ -65,10 +92,13 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
   as->lastTime = NOW;
 
   /* Player */
-  float speed = 5;
+  float speed = 0.3;
   SDL_FRect rect;
-  rect.w = 25;
-  rect.h = 25;
+  SDL_FRect rectB;
+  rect.w = 8;
+  rect.h = 8;
+  rectB.w = 64;
+  rectB.h = 64;
   Player *player = &as->player;
 
   /* BACKGROUND COLOR */
@@ -79,20 +109,12 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
   SDL_RenderClear(as->renderer);
 
   /* DRAWING STUFF HERE */
-  if (as->keys[SDL_SCANCODE_W]) {
-    player->y -= speed * dt;
-  } else if (as->keys[SDL_SCANCODE_S]) {
-    player->y += speed * dt;
-  } else if (as->keys[SDL_SCANCODE_A]) {
-    player->x -= speed * dt;
-  } else if (as->keys[SDL_SCANCODE_D]) {
-    player->x += speed * dt;
-  }
 
-  SDL_SetRenderDrawColor(as->renderer, 0, 255, 0, SDL_ALPHA_OPAQUE);
-  rect.x = player->x;
-  rect.y = player->y;
-  SDL_RenderFillRect(as->renderer, &rect);
+  playerMovement(as, speed, &dt);
+  loadLevel(as, &as->level, &rectB);
+
+  /* Rendering player */
+  playerRender2D(as, &rect, player);
 
   /* put the newly-cleared rendering on the screen. */
   SDL_RenderPresent(as->renderer);
@@ -109,4 +131,80 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result) {
     SDL_DestroyWindow(as->window);
     SDL_free(as);
   }
+}
+
+static void loadLevel(AppState *as, Level *level, SDL_FRect *rect) {
+  for (size_t i = 0; i < level->map.mapH; i++) {
+    for (size_t j = 0; j < level->map.mapW; j++) {
+      rect->x = level->map.pixelW * i;
+      rect->y = level->map.pixelH * j;
+      if (level->map.MAP[i * level->map.mapH + j] == 1) {
+        SDL_SetRenderDrawColor(as->renderer, 50, 50, 50, SDL_ALPHA_OPAQUE);
+      } else {
+        SDL_SetRenderDrawColor(as->renderer, 100, 100, 100, SDL_ALPHA_OPAQUE);
+      }
+
+      SDL_RenderFillRect(as->renderer, rect);
+    }
+  }
+}
+
+static void playerMovement(AppState *as, float speed, double *dt) {
+  float angle = as->player.angle * M_PI / 180;
+  Player *player = &as->player;
+  if (as->keys[SDL_SCANCODE_W]) {
+    // for X I need new X and current Y
+    float newX = cos(angle) * speed * (*dt);
+    if (notWall(newX, player->y, as->level.map.pixelW, as->level.map.mapW,
+                as->level.map.MAP))
+      player->x += newX;
+    // for Y I need new Y and current X
+
+    float newY = sin(angle) * speed * (*dt);
+    if (notWall(player->x, newY, as->level.map.pixelW, as->level.map.mapW,
+                as->level.map.MAP))
+      player->y += newY;
+  }
+  if (as->keys[SDL_SCANCODE_S]) {
+    float newX = cos(angle) * speed * (*dt);
+    if (notWall(newX, player->y, as->level.map.pixelW, as->level.map.mapW,
+                as->level.map.MAP))
+      player->x -= newX;
+
+    float newY = sin(angle) * speed * (*dt);
+    if (notWall(player->x, newY, as->level.map.pixelH, as->level.map.mapW,
+                as->level.map.MAP))
+      player->y -= sin(angle) * speed * (*dt);
+  }
+  if (as->keys[SDL_SCANCODE_A]) {
+    player->angle -= speed * (*dt);
+  }
+  if (as->keys[SDL_SCANCODE_D]) {
+    player->angle += speed * (*dt);
+  }
+}
+
+static void playerRender2D(AppState *as, SDL_FRect *rect, Player *player) {
+  SDL_SetRenderDrawColor(as->renderer, 0, 255, 0, SDL_ALPHA_OPAQUE);
+  rect->x = player->x;
+  rect->y = player->y;
+  SDL_RenderFillRect(as->renderer, rect);
+
+  /* Line rendering */
+  float angle = as->player.angle * M_PI / 180;
+  float x2 = player->x + cos(angle) * 20;
+  float y2 = player->y + sin(angle) * 20;
+  SDL_RenderLine(as->renderer, player->x, player->y, x2, y2);
+}
+
+static bool notWall(float x, float y, size_t tileSize, size_t tileCount,
+                    int *map) {
+  int tileIdx_X = x / tileSize;
+  int tileIdx_Y = y / tileSize;
+  printf("TILEIDX: X:%d Y:%d \n", tileIdx_X, tileIdx_Y);
+  printf("INDEX: %d \n", (int)(tileIdx_X * tileCount + tileIdx_Y));
+  if (map[tileIdx_X * tileCount + tileIdx_Y] == 1)
+    return true;
+
+  return false;
 }
