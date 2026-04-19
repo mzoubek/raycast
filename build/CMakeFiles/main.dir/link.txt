@@ -1,1 +1,1 @@
-/usr/sbin/cc -Wl,--dependency-file=CMakeFiles/main.dir/link.d CMakeFiles/main.dir/main.c.o -o main  /usr/lib/libSDL3.so.0.4.2
+/usr/sbin/cc -Wl,--dependency-file=CMakeFiles/main.dir/link.d CMakeFiles/main.dir/main.c.o -o main  /usr/lib/libSDL3.so.0.4.4 -lm
