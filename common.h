@@ -3,13 +3,20 @@
 #include <SDL3/SDL_main.h>
 #include <SDL3/SDL_stdinc.h>
 #include <SDL3/SDL_timer.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>
-#include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 // TODO: check later if this needs to be a pointer
+
+typedef struct {
+  float rayX;
+  float rayY;
+  float distance;
+} Ray;
+
 typedef struct {
   uint8_t health;
   uint8_t armor;
@@ -39,4 +46,5 @@ typedef struct {
   Player player;
   Uint64 lastTime;
   Level level;
+  Ray rays[320];
 } AppState;

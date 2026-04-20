@@ -52,7 +52,17 @@ CMakeFiles/main.dir/main.c.o: /home/marten420/projects/raycast/main.c \
  /usr/include/SDL3/SDL_time.h /usr/include/SDL3/SDL_timer.h \
  /usr/include/SDL3/SDL_tray.h /usr/include/SDL3/SDL_version.h \
  /usr/include/SDL3/SDL_oldnames.h /usr/include/SDL3/SDL_main.h \
- /usr/include/SDL3/SDL_main_impl.h /usr/include/stdlib.h \
+ /usr/include/SDL3/SDL_main_impl.h /usr/include/math.h \
+ /usr/include/bits/math-vector.h /usr/include/bits/libm-simd-decl-stubs.h \
+ /usr/include/bits/flt-eval-method.h /usr/include/bits/fp-logb.h \
+ /usr/include/bits/fp-fast.h /usr/include/bits/mathcalls-macros.h \
+ /usr/include/bits/mathcalls-helper-functions.h \
+ /usr/include/bits/mathcalls.h /usr/include/bits/mathcalls-narrow.h \
+ /usr/include/bits/iscanonical.h /usr/include/stdio.h \
+ /usr/include/bits/types/__fpos_t.h /usr/include/bits/types/__fpos64_t.h \
+ /usr/include/bits/types/struct_FILE.h \
+ /usr/include/bits/types/cookie_io_functions_t.h \
+ /usr/include/bits/stdio_lim.h /usr/include/stdlib.h \
  /usr/include/bits/waitflags.h /usr/include/bits/waitstatus.h \
  /usr/include/sys/types.h /usr/include/bits/types/clock_t.h \
  /usr/include/bits/types/clockid_t.h /usr/include/bits/types/time_t.h \
@@ -65,15 +75,4 @@ CMakeFiles/main.dir/main.c.o: /home/marten420/projects/raycast/main.c \
  /usr/include/bits/pthreadtypes-arch.h \
  /usr/include/bits/atomic_wide_counter.h /usr/include/bits/struct_mutex.h \
  /usr/include/bits/struct_rwlock.h /usr/include/alloca.h \
- /usr/include/bits/types/once_flag.h /usr/include/bits/stdlib-float.h \
- /usr/include/math.h /usr/include/bits/math-vector.h \
- /usr/include/bits/libm-simd-decl-stubs.h \
- /usr/include/bits/flt-eval-method.h /usr/include/bits/fp-logb.h \
- /usr/include/bits/fp-fast.h /usr/include/bits/mathcalls-macros.h \
- /usr/include/bits/mathcalls-helper-functions.h \
- /usr/include/bits/mathcalls.h /usr/include/bits/mathcalls-narrow.h \
- /usr/include/bits/iscanonical.h /usr/include/stdio.h \
- /usr/include/bits/types/__fpos_t.h /usr/include/bits/types/__fpos64_t.h \
- /usr/include/bits/types/struct_FILE.h \
- /usr/include/bits/types/cookie_io_functions_t.h \
- /usr/include/bits/stdio_lim.h
+ /usr/include/bits/types/once_flag.h /usr/include/bits/stdlib-float.h

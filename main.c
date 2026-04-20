@@ -26,9 +26,11 @@ static void loadLevel(AppState *as, Level *level, SDL_FRect *rect);
 static void playerMovement(AppState *as, float speed, double *dt);
 static void playerRender2D(AppState *as, SDL_FRect *rect, Player *player);
 static bool notWall(float x, float y, size_t tileSize, size_t tileCount,
-                    int *map);
+                    Map map);
 static void initializeAS(AppState *as);
 static void castRays(AppState *as);
+static void getDistanceFromWall(AppState *as);
+static void drawWalls(AppState *as);
 
 /* This function runs once at startup. */
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
@@ -57,11 +59,13 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
   return SDL_APP_CONTINUE; /* carry on with the program! */
 }
 
-/* This function runs when a new event (mouse input, keypresses, etc) occurs. */
+/* This function runs when a new event (mouse input, keypresses, etc) occurs.
+ */
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
   AppState *as = (AppState *)appstate;
   if (event->type == SDL_EVENT_QUIT) {
-    return SDL_APP_SUCCESS; /* end the program, reporting success to the OS. */
+    return SDL_APP_SUCCESS; /* end the program, reporting success to the OS.
+                             */
   }
 
   if (event->type == SDL_EVENT_KEY_DOWN) {
@@ -103,9 +107,8 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
   playerMovement(as, speed, &dt);
   loadLevel(as, &as->level, &rectB);
-
-  /* FOV rays */
-  castRays(as);
+  getDistanceFromWall(as);
+  drawWalls(as);
 
   /* Rendering player */
   playerRender2D(as, &rect, player);
@@ -153,48 +156,48 @@ static void playerMovement(AppState *as, float speed, double *dt) {
     // for X I need new X and current Y
     float newX = cos(angle) * speed * (*dt);
     if (notWall(player->x + newX, player->y, as->level.map.pixelW,
-                as->level.map.mapW, as->level.map.MAP) &&
+                as->level.map.mapW, as->level.map) &&
         notWall(player->x + newX + 8, player->y, as->level.map.pixelW,
-                as->level.map.mapW, as->level.map.MAP) &&
+                as->level.map.mapW, as->level.map) &&
         notWall(player->x + newX, player->y + 8, as->level.map.pixelW,
-                as->level.map.mapW, as->level.map.MAP) &&
+                as->level.map.mapW, as->level.map) &&
         notWall(player->x + newX + 8, player->y + 8, as->level.map.pixelW,
-                as->level.map.mapW, as->level.map.MAP))
+                as->level.map.mapW, as->level.map))
       player->x += newX;
     // for Y I need new Y and current X
 
     float newY = sin(angle) * speed * (*dt);
     if (notWall(player->x, player->y + newY, as->level.map.pixelH,
-                as->level.map.mapW, as->level.map.MAP) &&
+                as->level.map.mapW, as->level.map) &&
         notWall(player->x, player->y + newY + 8, as->level.map.pixelH,
-                as->level.map.mapW, as->level.map.MAP) &&
+                as->level.map.mapW, as->level.map) &&
         notWall(player->x + 8, player->y + newY, as->level.map.pixelH,
-                as->level.map.mapW, as->level.map.MAP) &&
+                as->level.map.mapW, as->level.map) &&
         notWall(player->x + 8, player->y + newY + 8, as->level.map.pixelH,
-                as->level.map.mapW, as->level.map.MAP))
+                as->level.map.mapW, as->level.map))
       player->y += newY;
   }
   if (as->keys[SDL_SCANCODE_S]) {
     float newX = cos(angle) * speed * (*dt);
     if (notWall(player->x - newX, player->y, as->level.map.pixelW,
-                as->level.map.mapW, as->level.map.MAP) &&
+                as->level.map.mapW, as->level.map) &&
         notWall(player->x - newX + 8, player->y, as->level.map.pixelW,
-                as->level.map.mapW, as->level.map.MAP) &&
+                as->level.map.mapW, as->level.map) &&
         notWall(player->x - newX, player->y + 8, as->level.map.pixelW,
-                as->level.map.mapW, as->level.map.MAP) &&
+                as->level.map.mapW, as->level.map) &&
         notWall(player->x - newX + 8, player->y + 8, as->level.map.pixelW,
-                as->level.map.mapW, as->level.map.MAP))
+                as->level.map.mapW, as->level.map))
       player->x -= newX;
 
     float newY = sin(angle) * speed * (*dt);
     if (notWall(player->x, player->y - newY, as->level.map.pixelH,
-                as->level.map.mapW, as->level.map.MAP) &&
+                as->level.map.mapW, as->level.map) &&
         notWall(player->x, player->y - newY + 8, as->level.map.pixelH,
-                as->level.map.mapW, as->level.map.MAP) &&
+                as->level.map.mapW, as->level.map) &&
         notWall(player->x + 8, player->y - newY, as->level.map.pixelH,
-                as->level.map.mapW, as->level.map.MAP) &&
+                as->level.map.mapW, as->level.map) &&
         notWall(player->x + 8, player->y - newY + 8, as->level.map.pixelH,
-                as->level.map.mapW, as->level.map.MAP))
+                as->level.map.mapW, as->level.map))
       player->y -= sin(angle) * speed * (*dt);
   }
   if (as->keys[SDL_SCANCODE_A]) {
@@ -230,20 +233,64 @@ static void initializeAS(AppState *as) {
 
 static void castRays(AppState *as) {
   Player *player = &as->player;
+
   float begin = player->angle - 30;
 
   SDL_SetRenderDrawColor(as->renderer, 255, 0, 0, SDL_ALPHA_OPAQUE);
-  for (int i = 0; i < 60; i++) {
-    float rayAngle = (begin + i) * M_PI / 180;
+  for (int i = 0; i < 320; i++) {
+    SDL_RenderLine(as->renderer, player->x, player->y, as->rays[i].rayX,
+                   as->rays[i].rayY);
+  }
+}
+
+static void getDistanceFromWall(AppState *as) {
+  Player *player = &as->player;
+  Ray *arr = as->rays;
+
+  float begin = player->angle - 30;
+  // Hardcoded for now
+  size_t rayCount = 320;
+
+  for (size_t i = 0; i < rayCount; i++) {
+    float rayAngle = (begin + i * (60.0f / 320.0f)) * M_PI / 180;
+
     float rayX = player->x;
     float rayY = player->y;
+    float distance = 0;
 
     while (notWall(rayX, rayY, as->level.map.pixelW, as->level.map.mapW,
-                   as->level.map.MAP)) {
+                   as->level.map)) {
       rayX += cos(rayAngle) * 1;
       rayY += sin(rayAngle) * 1;
+      distance += 1.0;
     }
-    SDL_RenderLine(as->renderer, as->player.x, as->player.y, rayX, rayY);
+
+    float correctedDist =
+        distance * cos((begin + i * (60.0f / 320.0f)) * M_PI / 180 -
+                       player->angle * M_PI / 180);
+
+    arr[i].rayX = rayX;
+    arr[i].rayY = rayY;
+    arr[i].distance = correctedDist;
+  }
+}
+
+static void drawWalls(AppState *as) {
+  for (size_t i = 0; i < 320; i++) {
+    // WARNING: Hardcoded for now
+    float sliceHeight;
+    if (as->rays[i].distance < 1)
+      as->rays[i].distance = 1;
+
+    sliceHeight = 30000 / as->rays[i].distance;
+    float width = 1;
+    float x = 320 + i;
+    float y = (240 - sliceHeight / 2);
+
+    SDL_FRect wallRect = {x, y, width, sliceHeight};
+
+    SDL_SetRenderDrawColor(as->renderer, 0, 0, 255, SDL_ALPHA_OPAQUE);
+    SDL_RenderFillRect(as->renderer, &wallRect);
   }
 }
 
@@ -260,13 +307,18 @@ static void playerRender2D(AppState *as, SDL_FRect *rect, Player *player) {
   SDL_RenderLine(as->renderer, player->x, player->y, x2, y2);
 
   /* FOV line rendering */
+  castRays(as);
 }
 
 static bool notWall(float x, float y, size_t tileSize, size_t tileCount,
-                    int *map) {
+                    Map map) {
   int tileIdx_X = x / tileSize;
   int tileIdx_Y = y / tileSize;
-  if (map[tileIdx_Y * tileCount + tileIdx_X] == 1)
+  if ((tileIdx_X < 0 || tileIdx_X > map.mapW - 1) ||
+      (tileIdx_Y < 0 || tileIdx_Y > map.mapH - 1)) {
+    return false;
+  }
+  if (map.MAP[tileIdx_Y * tileCount + tileIdx_X] == 1)
     return false;
 
   return true;
