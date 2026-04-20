@@ -7,8 +7,6 @@
 /* ==============================================================
  *
  *  NOTES: conversion from angle to radians = angle * M_PI / 180
- *   FIX: the conversion of flat 1D map to SDL is incorrect as boundaries exist
- *  elsewhere
  *
  * ==============================================================
  */
@@ -48,12 +46,13 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
   }
   *appstate = as;
 
-  if (!SDL_CreateWindowAndRenderer("DOOMlike", 640, 480, SDL_WINDOW_RESIZABLE,
-                                   &as->window, &as->renderer)) {
+  if (!SDL_CreateWindowAndRenderer("DOOMlike", WINDOW_W, WINDOW_H,
+                                   SDL_WINDOW_RESIZABLE, &as->window,
+                                   &as->renderer)) {
     SDL_Log("Couldn't create window/renderer: %s", SDL_GetError());
     return SDL_APP_FAILURE;
   }
-  SDL_SetRenderLogicalPresentation(as->renderer, 640, 480,
+  SDL_SetRenderLogicalPresentation(as->renderer, WINDOW_W, WINDOW_H,
                                    SDL_LOGICAL_PRESENTATION_LETTERBOX);
 
   return SDL_APP_CONTINUE; /* carry on with the program! */
@@ -87,7 +86,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
   as->lastTime = NOW;
 
   /* Player */
-  float speed = 0.3;
+  float speed = 0.2;
   SDL_FRect rect;
   SDL_FRect rectB;
   rect.w = 8;
@@ -106,12 +105,12 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
   /* DRAWING STUFF HERE */
 
   playerMovement(as, speed, &dt);
-  loadLevel(as, &as->level, &rectB);
+  // loadLevel(as, &as->level, &rectB);
   getDistanceFromWall(as);
   drawWalls(as);
 
   /* Rendering player */
-  playerRender2D(as, &rect, player);
+  // playerRender2D(as, &rect, player);
 
   /* put the newly-cleared rendering on the screen. */
   SDL_RenderPresent(as->renderer);
@@ -237,7 +236,7 @@ static void castRays(AppState *as) {
   float begin = player->angle - 30;
 
   SDL_SetRenderDrawColor(as->renderer, 255, 0, 0, SDL_ALPHA_OPAQUE);
-  for (int i = 0; i < 320; i++) {
+  for (int i = 0; i < RAY_COUNT; i++) {
     SDL_RenderLine(as->renderer, player->x, player->y, as->rays[i].rayX,
                    as->rays[i].rayY);
   }
@@ -249,10 +248,8 @@ static void getDistanceFromWall(AppState *as) {
 
   float begin = player->angle - 30;
   // Hardcoded for now
-  size_t rayCount = 320;
-
-  for (size_t i = 0; i < rayCount; i++) {
-    float rayAngle = (begin + i * (60.0f / 320.0f)) * M_PI / 180;
+  for (size_t i = 0; i < RAY_COUNT; i++) {
+    float rayAngle = (begin + i * (60.0f / RAY_COUNT)) * M_PI / 180;
 
     float rayX = player->x;
     float rayY = player->y;
@@ -266,7 +263,7 @@ static void getDistanceFromWall(AppState *as) {
     }
 
     float correctedDist =
-        distance * cos((begin + i * (60.0f / 320.0f)) * M_PI / 180 -
+        distance * cos((begin + i * (60.0f / RAY_COUNT)) * M_PI / 180 -
                        player->angle * M_PI / 180);
 
     arr[i].rayX = rayX;
@@ -276,20 +273,23 @@ static void getDistanceFromWall(AppState *as) {
 }
 
 static void drawWalls(AppState *as) {
-  for (size_t i = 0; i < 320; i++) {
-    // WARNING: Hardcoded for now
-    float sliceHeight;
+  for (size_t i = 0; i < RAY_COUNT; i++) {
     if (as->rays[i].distance < 1)
       as->rays[i].distance = 1;
 
-    sliceHeight = 30000 / as->rays[i].distance;
-    float width = 1;
-    float x = 320 + i;
-    float y = (240 - sliceHeight / 2);
+    float sliceHeight = 30000 / as->rays[i].distance;
+    float x = VIEW3D_X + i;
+    float y = VIEW3D_Y + ((float)VIEW3D_H / 2) - (sliceHeight / 2);
 
-    SDL_FRect wallRect = {x, y, width, sliceHeight};
+    SDL_FRect wallRect = {x, y, 1, sliceHeight};
 
-    SDL_SetRenderDrawColor(as->renderer, 0, 0, 255, SDL_ALPHA_OPAQUE);
+    float brigthness = 15000 / as->rays[i].distance;
+    if (brigthness > 255)
+      brigthness = 255;
+    if (brigthness < 20)
+      brigthness = 20;
+    SDL_SetRenderDrawColor(as->renderer, 0, 0, (Uint8)brigthness,
+                           SDL_ALPHA_OPAQUE);
     SDL_RenderFillRect(as->renderer, &wallRect);
   }
 }

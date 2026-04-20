@@ -9,6 +9,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define WINDOW_W 640
+#define WINDOW_H 480
+
+#define VIEW3D_X 0
+#define VIEW3D_Y 0
+#define VIEW3D_W WINDOW_W
+#define VIEW3D_H WINDOW_H
+
+#define MINIMAP_X 10
+#define MINIMAP_Y 10
+#define MINIMAP_W 160
+#define MINIMAP_H 120
+
+#define RAY_COUNT VIEW3D_W
+
 // TODO: check later if this needs to be a pointer
 
 typedef struct {
@@ -46,5 +61,5 @@ typedef struct {
   Player player;
   Uint64 lastTime;
   Level level;
-  Ray rays[320];
+  Ray rays[RAY_COUNT];
 } AppState;
